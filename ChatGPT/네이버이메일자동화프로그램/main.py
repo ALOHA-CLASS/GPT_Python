@@ -83,18 +83,20 @@ def mark_email_as_sent(email_id):
     conn.close()
 
 # 이메일 전송 함수
-def send_emails(driver):
-    emails = get_pending_emails()
+# emails를 인자로 받도록 변경
+def send_emails(driver, emails):
     for email in emails:
         driver.get("https://mail.naver.com/v2/new")
 
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "recipient_input_element"))).send_keys(email['recipient'])
         driver.find_element(By.ID, "subject_title").send_keys(email['subject'])
         
-        # 내용 입력을 innerHTML 방식으로 처리# 내용 입력을 innerHTML 방식으로 처리 (첫 번째 요소로 지정)
-        # content_elements = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "workseditor-content")))
-        # if content_elements:
-        #     driver.execute_script("arguments[0].innerHTML = arguments[1];", content_elements[0], email['content'].replace('\n', '<br>'))
+        # 내용 입력을 쿼리셀렉터와 innerHTML로 처리 (명확한 변수 선언 추가)
+        
+        driver.execute_script(
+            "const editor = document.querySelector('.workseditor-content'); if(editor){ editor.innerHTML = '"+email['content']  +"'; }",
+            email['content'].replace('\n', '<br>')
+        )
 
         driver.find_element(By.CLASS_NAME, "button_write_task").click()
 
@@ -168,7 +170,11 @@ class EmailApp:
         if not self.driver:
             messagebox.showerror("오류", "먼저 로그인을 해주세요.")
             return
-        send_emails(self.driver)
+        emails = get_pending_emails()
+        if not emails:
+            messagebox.showinfo("안내", "전송할 메일이 없습니다.")
+            return
+        send_emails(self.driver, emails)
 
 if __name__ == '__main__':
     init_db()
